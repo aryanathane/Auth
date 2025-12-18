@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import connectDb from "./db";
 import User from "@/model/user.Model";
 import bcrypt from "bcryptjs";
+import Google from "next-auth/providers/google";
+
 
 const authOptions: NextAuthOptions = {
   // Authentication providers configuration
@@ -51,14 +53,37 @@ const authOptions: NextAuthOptions = {
           image: user.image
         };
       }
+    }),
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!
     })
   ],
   
   // Callbacks to customize JWT and session behavior
   callbacks: {
+    async signIn({ account, user, profile }) {
+      if (account?.provider === 'google') {
+        await connectDb();
+        let existUser = await User.findOne({ email: user?.email });
+        
+        if (!existUser) {
+          existUser = await User.create({
+            name: user?.name,
+            email: user?.email,
+            image: user?.image
+          });
+        }
+        
+        // Attach the database user ID to the user object
+        user.id = existUser._id.toString();
+      }
+      return true;
+    },
+    
     // JWT callback - called when JWT is created or updated
     // Adds custom user data to the JWT token
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;

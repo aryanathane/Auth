@@ -5,7 +5,7 @@ interface userI{
     name?:string,
     image?:string,
     email:string,
-    password:string,
+    password?:string,
     createdAt?:Date,
     updatedAt?:Date
 };
@@ -22,7 +22,7 @@ const userSchema=new mongoose.Schema<userI>({
     },
     password:{
         type:String,
-        required:true
+        required:false
     },
     image:{
         type:String
