@@ -1,87 +1,76 @@
-"use client"
-import { useSession, signOut } from 'next-auth/react'
+'use client'
+import { signOut } from 'next-auth/react'
 import React, { useState } from 'react'
 import Image from 'next/image'
-import { HiPencil } from "react-icons/hi2";
+import { HiPencil } from "react-icons/hi2"
+import { useRouter } from 'next/navigation'
+import { useUserContext } from '@/context/UserContext'
 
-function ProfilePage() {
-  const { data, status } = useSession();
-  const[loading,setLoading]=useState(false);
+function Page() {
+  const { user, setUser } = useUserContext() // Use the hook instead
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
-  console.log(data);
-  
-  // Handle sign out
-  const handleSignOut = async() => {
-    setLoading(false);
-   try {
-      await signOut(); 
-   } catch (error) {
-    setLoading(true);
-   }
-  };
-  
+  const handleSignOut = async () => {
+    setLoading(true)
+    try {
+      await signOut({ callbackUrl: '/' })
+      setUser(null) // Clear user from context
+    } catch (error) {
+      console.error('Sign out error:', error)
+      setLoading(false)
+    }
+  }
+
   return (
     <div className='min-h-screen flex flex-col items-center justify-center bg-black text-white px-4'>
-      
-      {/* Loading state */}
-      {status === 'loading' && (
-        <div className='text-white text-2xl'>Loading...</div>
-      )}
-      
-      {/* Authenticated state */}
-      {status === 'authenticated' && data && (
+      {user ? (
         <div className='w-full max-w-md border-2 border-white rounded-2xl p-8 shadow-lg text-center relative flex flex-col items-center'>
-          
-          {/* Edit button */}
           <HiPencil 
             size={22} 
             color='white' 
-            className='absolute right-[20px] top-[20px] cursor-pointer hover:scale-110 transition-transform'
-            onClick={() => console.log('Edit profile clicked')}
+            className='absolute right-[20px] top-[20px] cursor-pointer hover:scale-110 transition-transform' 
+            onClick={() => router.push("/edit")}
             aria-label="Edit profile"
-          /> 
+          />
           
-          {/* Profile image */}
-          {data.user?.image && data.user.image.trim() !== '' ? (
+          {user.image ? (
             <div className='relative w-[200px] h-[200px] rounded-full border-2 border-white overflow-hidden'>
               <Image 
-                src={data.user.image} 
+                src={user.image} 
                 fill 
-                alt={`${data.user.name}'s profile picture`}
+                alt={`${user.name}'s profile picture`}
                 className='object-cover'
+                priority
               />
             </div>
           ) : (
             <div className='w-[200px] h-[200px] rounded-full border-2 border-white bg-gray-700 flex items-center justify-center text-4xl font-bold'>
-              {data.user?.name?.charAt(0).toUpperCase() || 'U'}
+              {user.name?.charAt(0).toUpperCase() || 'U'}
             </div>
           )}
           
-          {/* Welcome message */}
           <h1 className='text-2xl font-semibold my-4'>
-            Welcome, {data.user?.name}
+            Welcome, {user.name}
           </h1>
-      
           
-          {/* Sign out button */}
+          {user.email && (
+            <p className='text-gray-400 mb-4'>{user.email}</p>
+          )}
+          
           <button 
+            className='w-full py-2 px-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed' 
             onClick={handleSignOut}
-            className='w-full py-2 px-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition-colors'
+            disabled={loading}
           >
-            Sign Out
+            {loading ? 'Signing out...' : 'Sign Out'}
           </button>
         </div>
+      ) : (
+        <div className='text-white text-2xl'>Loading...</div>
       )}
-      
-      {/* Unauthenticated state */}
-      {status === 'unauthenticated' && (
-        <div className='text-white text-2xl'>
-          Please sign in to view your profile
-        </div>
-      )}
-      
     </div>
   )
 }
 
-export default ProfilePage
+export default Page
